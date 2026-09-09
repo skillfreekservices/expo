@@ -1,168 +1,427 @@
----
-title: EAS Build
-sidebar_title: Introduction
-description: EAS Build is a hosted service for building app binaries for your Expo and React Native projects.
----
+npm install react-native-reanimated react-native-linear-gradient @react-native-async-storage/async-storage react-native-purchases @superwall/react-native-superwall
+}
 
-import { Cube01Icon } from '@expo/styleguide-icons/outline/Cube01Icon';
+export interface Question {
+  question_id: string;
+  category: string;
+  difficulty_level: number;
+  story_context?: string;
+  prompt: string;
+  options: QuestionOption[];
+  correct_option_id: string;
+  scripture_proof: string;
+  reasoning_explanation: string;
+  lifeline_data: {
+    scriptural_hint: string;
+    fifty_fifty_remove: string[];
+  };
+}
 
-import { BoxLink } from '~/ui/components/BoxLink';
-import { Collapsible } from '~/ui/components/Collapsible';
-import { NoIcon, YesIcon } from '~/ui/components/DocIcons';
-import { FAQ } from '~/ui/components/FAQ';
-import { RelatedSkills } from '~/ui/components/RelatedSkills';
-import { Terminal } from '~/ui/components/Snippet';
+export interface GameState {
+  currentQuestionIndex: number;
+  accumulatedPearls: number;
+  availableLifelines: Record<LifelineType, boolean>;
+  isCouncilOfferActive: boolean;
+  gameStatus: 'IN_PROGRESS' | 'WON' | 'LOST' | 'CASHED_OUT';
+}
 
-**EAS Build** is a hosted Expo Application Services (EAS) service that builds app binaries (also called [standalone apps](/more/glossary-of-terms/#standalone-app)) for your Expo and React Native projects.
-
-EAS Build makes building your apps for distribution simple and easy to automate by providing defaults that work well for Expo and React Native projects out of the box, and by handling your app signing credentials for you (if you wish). It also makes sharing builds with your team easier than ever with [internal distribution](/build/internal-distribution/) (using [ad hoc](/build/internal-distribution/) and/or enterprise "universal" provisioning), deeply integrates with EAS Submit for app store submissions, and has first-class support for the [`expo-updates`](/build/updates/) library.
-
-EAS Build is also designed to work for any native project, whether or not you use Expo and React Native. It's the fastest way to get from `npx create-expo-app` or `npx @react-native-community/cli@latest init` to app stores.
-
-## Quick start
-
-> **info** The `eas` commands below require EAS CLI. See [How to install EAS CLI](/eas/cli/#installation) for more information.
-
-To build your app, run the following command:
-
-<Terminal cmd={['$ eas build --platform all']} />
-
-This command sends your project to EAS Build and produces installable binaries for Android and iOS. You can also build for one platform at a time by passing in `--platform android` or `--platform ios` as desired. For complete setup instructions, see [Create your first build](/build/setup/).
-
-### Expo Skills for AI agents
-
-If you use an AI agent, install [Expo Skills](/skills/) to teach it how to create production builds and ship them to the app stores:
-
-<RelatedSkills names={['eas-app-stores']} />
-
-## Key features
-
-- Cloud builds for Android and iOS with consistent environments
-- Automatically provision and manage app signing credentials or use your own
-- Share [internal distribution](/build/internal-distribution/) builds with a URL
-- Automate builds with [build profiles](/build/eas-json/#build-profiles) in **eas.json** (named sets of build settings) and integrations with [EAS Workflows](/eas/workflows/get-started/) or [CI pipelines](/build/building-on-ci/)
-- Auto-submit successful builds to app stores via [`--auto-submit`](/build/automate-submissions/) and EAS Submit
-- First-class [`expo-updates` integration](/build/updates/) with per-profile channels and [runtime version](/eas-update/runtime-versions/) guidance
-- Reuse [development builds](/develop/development-builds/introduction/) across your team. When two team members run `eas build:dev` and the project fingerprint matches, the existing build is downloaded from EAS instead of creating a new one
-- Faster builds via [dependency caching and custom cache paths](/build-reference/caching/)
-- Install builds and updates on devices with [Expo Orbit](https://expo.dev/orbit)
-
-## When to use EAS Build
-
-| Scenario                                                                             | Recommendation |
-| ------------------------------------------------------------------------------------ | -------------- |
-| Build production-ready binaries for app stores                                       | <YesIcon />    |
-| Share builds with testers via [internal distribution](/build/internal-distribution/) | <YesIcon />    |
-| Consistent builds across team members without local environment setup                | <YesIcon />    |
-| Automate builds from CI or [EAS Workflows](/eas/workflows/get-started/)              | <YesIcon />    |
-| Managed app signing credentials                                                      | <YesIcon />    |
-| Debugging native code locally                                                        | <NoIcon />     |
-
-## Frequently asked questions
-
-<FAQ>
-
-<Collapsible summary="How do I share builds with my team before submitting to app stores?">
-
-Use [internal distribution](/build/internal-distribution/) to share builds with a URL. Set `"distribution": "internal"` in your [build profile](/build/eas-json/#build-profiles) in **eas.json** to generate installable Android Package (APK) files for Android or [ad hoc builds](/build/internal-distribution/) for iOS.
-
-</Collapsible>
-
-<Collapsible summary="Can I use EAS Build with existing React Native projects?">
-
-Yes. EAS Build works with existing React Native projects created with `npx react-native init` or similar tools. See [Overview of using Expo with existing React Native apps](/bare/overview/) for more information.
-
-</Collapsible>
-
-<Collapsible summary="Does EAS Build handle app signing credentials?">
-
-Yes. EAS Build can generate and manage Android [keystores](/app-signing/app-credentials/#android), iOS [provisioning profiles](/app-signing/app-credentials/#ios) and [distribution certificates](/app-signing/app-credentials/#ios), or use credentials you provide. See [App signing credentials](/app-signing/app-credentials/) for more information.
-
-</Collapsible>
-
-<Collapsible summary="Can I run builds locally instead of in the cloud?">
-
-Yes. Use [local builds](/build-reference/local-builds/) with `eas build --local` to run builds on your machine. This is useful for debugging or for security policies that require local builds.
-
-</Collapsible>
-
-<Collapsible summary="Can I use EAS Build with EAS Workflows or CI pipelines?">
-
-Yes. EAS Build integrates with [EAS Workflows](/eas/workflows/get-started/) using the `build` job type. Add a build job to your workflow configuration, for example:
-
-```yaml
-jobs:
-  build_ios:
-    type: build
-    params:
-      platform: ios
 ```
+### 2. Main Game Screen (src/screens/QuizArenaScreen.tsx)
+```tsx
+import React, { useState, useEffect } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Modal,
+  Alert,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Animated, { FadeInUp, FadeInDown, ZoomIn } from 'react-native-reanimated';
+import Purchases from 'react-native-purchases';
+import Superwall from '@superwall/react-native-superwall';
 
-The build job supports builds for both platforms or conditional builds based on the branch:
+import { Question, LifelineType } from '../types/game';
 
-```yaml
-jobs:
-  build:
-    type: build
-    params:
-      platform: all
-      profile: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
+// Sample Level Ladder Values
+const LADDER_REWARDS = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
+
+const SAMPLE_QUESTION: Question = {
+  question_id: 'sp_q_5082',
+  category: 'Biblical History & Events',
+  difficulty_level: 5,
+  story_context: 'During the reign of King Hezekiah, Jerusalem faced an imminent siege by the Assyrian army under Sennacherib.',
+  prompt: 'Which strategic engineering project did Hezekiah undertake to secure the city\'s water supply prior to the siege?',
+  options: [
+    { id: 'A', text: 'Rebuilding the Eastern Water Gate' },
+    { id: 'B', text: 'Tunneling through solid rock from Gihon Spring to Siloam' },
+    { id: 'C', text: 'Constructing deep reservoirs in the Kidron Valley' },
+    { id: 'D', text: 'Diverting the Jordan River into northern cisterns' },
+  ],
+  correct_option_id: 'B',
+  scripture_proof: '2 Chronicles 32:30',
+  reasoning_explanation: 'Hezekiah blocked the upper outlet of the Gihon spring and channeled the water straight down to the west side of the City of David.',
+  lifeline_data: {
+    scriptural_hint: 'Focus on the underground channel leading to Siloam.',
+    fifty_fifty_remove: ['A', 'D'],
+  },
+};
+
+export const QuizArenaScreen: React.FC = () => {
+  const [questionIndex, setQuestionIndex] = useState<number>(4); // Question 5 (Index 4) triggers Council Offer
+  const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
+  const [usedLifelines, setUsedLifelines] = useState<Record<LifelineType, boolean>>({
+    scriptural_hint: false,
+    fifty_fifty: false,
+    verse_swap: false,
+    community_wisdom: false,
+  });
+  const [showCouncilModal, setShowCouncilModal] = useState<boolean>(false);
+  const [activeHint, setActiveHint] = useState<string | null>(null);
+
+  // Trigger Council Offer on Milestone Checkpoints (e.g., Question 5 & 10)
+  useEffect(() => {
+    if (questionIndex === 4 || questionIndex === 9) {
+      setShowCouncilModal(true);
+    }
+  }, [questionIndex]);
+
+  const handleAnswer = (selectedId: string) => {
+    if (selectedId === SAMPLE_QUESTION.correct_option_id) {
+      if (questionIndex < LADDER_REWARDS.length - 1) {
+        setQuestionIndex(prev => prev + 1);
+        setDisabledOptions([]);
+        setActiveHint(null);
+      } else {
+        Alert.alert('Victory!', 'You have mastered The Ascent!');
+      }
+    } else {
+      // Trigger Superwall Paywall on Failure / Second Chance
+      Superwall.shared.register('game_over_second_chance');
+      Alert.alert('Ascent Failed', `Correct answer: ${SAMPLE_QUESTION.correct_option_id}. ${SAMPLE_QUESTION.reasoning_explanation}`);
+    }
+  };
+
+  const useFiftyFifty = () => {
+    if (usedLifelines.fifty_fifty) return;
+    setDisabledOptions(SAMPLE_QUESTION.lifeline_data.fifty_fifty_remove);
+    setUsedLifelines(prev => ({ ...prev, fifty_fifty: true }));
+  };
+
+  const useScripturalHint = () => {
+    if (usedLifelines.scriptural_hint) return;
+    setActiveHint(SAMPLE_QUESTION.lifeline_data.scriptural_hint);
+    setUsedLifelines(prev => ({ ...prev, scriptural_hint: true }));
+  };
+
+  const handleAcceptCouncilOffer = () => {
+    setShowCouncilModal(false);
+    const guaranteedPearls = LADDER_REWARDS[questionIndex - 1] || 500;
+    Alert.alert('Cashed Out!', `You walked away with ${guaranteedPearls} Pearls.`);
+  };
+
+  return (
+    <LinearGradient colors={['#080A15', '#161B3D', '#080A15']} style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <SafeAreaView style={styles.safeArea}>
+        
+        {/* Top Header HUD */}
+        <View style={styles.headerContainer}>
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>CHERUBIM LEAGUE</Text>
+          </View>
+          <View style={styles.rewardContainer}>
+            <Text style={styles.rewardLabel}>CURRENT PRIZE</Text>
+            <Text style={styles.rewardValue}>{LADDER_REWARDS[questionIndex]} Pearls</Text>
+          </View>
+        </View>
+
+        {/* Lifelines Bar */}
+        <View style={styles.lifelinesContainer}>
+          <TouchableOpacity 
+            style={[styles.lifelineButton, usedLifelines.fifty_fifty && styles.lifelineDisabled]} 
+            onPress={useFiftyFifty}
+            disabled={usedLifelines.fifty_fifty}>
+            <Text style={styles.lifelineText}>50:50</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.lifelineButton, usedLifelines.scriptural_hint && styles.lifelineDisabled]} 
+            onPress={useScripturalHint}
+            disabled={usedLifelines.scriptural_hint}>
+            <Text style={styles.lifelineText}>Hint</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Question & Story Context Card */}
+        <Animated.View entering={FadeInUp.duration(600)} style={styles.glassCard}>
+          <Text style={styles.categoryText}>{SAMPLE_QUESTION.category.toUpperCase()}</Text>
+          {SAMPLE_QUESTION.story_context && (
+            <Text style={styles.storyText}>{SAMPLE_QUESTION.story_context}</Text>
+          )}
+          <Text style={styles.promptText}>{SAMPLE_QUESTION.prompt}</Text>
+          
+          {activeHint && (
+            <View style={styles.hintContainer}>
+              <Text style={styles.hintText}>💡 {activeHint}</Text>
+            </View>
+          )}
+        </Animated.View>
+
+        {/* Options Grid */}
+        <View style={styles.optionsContainer}>
+          {SAMPLE_QUESTION.options.map((option, idx) => {
+            const isDisabled = disabledOptions.includes(option.id);
+            return (
+              <Animated.View key={option.id} entering={FadeInDown.delay(idx * 100)}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isDisabled}
+                  style={[styles.optionButton, isDisabled && styles.optionDisabled]}
+                  onPress={() => handleAnswer(option.id)}>
+                  <Text style={styles.optionPrefix}>{option.id}</Text>
+                  <Text style={styles.optionText}>{option.text}</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        {/* The Council's Offer (Banker) Modal */}
+        <Modal visible={showCouncilModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <Animated.View entering={ZoomIn.duration(400)} style={styles.councilCard}>
+              <Text style={styles.councilTitle}>THE COUNCIL'S OFFER</Text>
+              <Text style={styles.councilDescription}>
+                You have reached Question {questionIndex + 1}. The Council offers you a guaranteed cash out before you risk your progression.
+              </Text>
+              <Text style={styles.offerAmount}>{LADDER_REWARDS[questionIndex - 1]} Pearls</Text>
+              
+              <TouchableOpacity style={styles.acceptButton} onPress={handleAcceptCouncilOffer}>
+                <Text style={styles.acceptButtonText}>WALK AWAY WITH PEARLS</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.declineButton} onPress={() => setShowCouncilModal(false)}>
+                <Text style={styles.declineButtonText}>RISK IT ALL & CONTINUE</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </Modal>
+
+      </SafeAreaView>
+    </LinearGradient>
+  );
+};
+
 ```
+### 3. Apple-Grade Glassmorphism & UI Styling (src/styles/QuizArenaStyles.ts)
+```typescript
+import { StyleSheet } from 'react-native';
 
-For more information and other usage examples, see the [EAS Workflows build job](/eas/workflows/pre-packaged-jobs#build).
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+    marginHorizontal: 20,
+    justifyContent: 'space-between',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  badgeContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  badgeText: {
+    color: '#E6B800',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  rewardContainer: {
+    alignItems: 'flex-end',
+  },
+  rewardLabel: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  rewardValue: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  lifelinesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 15,
+    marginVertical: 15,
+  },
+  lifelineButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: '#E6B800',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  lifelineDisabled: {
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    opacity: 0.3,
+  },
+  lifelineText: {
+    color: '#E6B800',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  categoryText: {
+    color: '#E6B800',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  storyText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  promptText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 26,
+  },
+  hintContainer: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: 'rgba(230, 184, 0, 0.1)',
+    borderRadius: 8,
+  },
+  hintText: {
+    color: '#E6B800',
+    fontSize: 13,
+  },
+  optionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  optionDisabled: {
+    opacity: 0.2,
+  },
+  optionPrefix: {
+    color: '#E6B800',
+    fontWeight: '800',
+    fontSize: 16,
+    marginRight: 15,
+  },
+  optionText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '500',
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(8, 10, 21, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  councilCard: {
+    backgroundColor: '#161B3D',
+    borderRadius: 28,
+    padding: 30,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E6B800',
+    width: '100%',
+  },
+  councilTitle: {
+    color: '#E6B800',
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 12,
+  },
+  councilDescription: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  offerAmount: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '900',
+    marginBottom: 25,
+  },
+  acceptButton: {
+    backgroundColor: '#E6B800',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  acceptButtonText: {
+    color: '#080A15',
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 1,
+  },
+  declineButton: {
+    paddingVertical: 12,
+  },
+  declineButtonText: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+});
+import Purchases from 'react-native-purchases';
+import Superwall from '@superwall/react-native-superwall';
 
-EAS Build supports [builds from GitHub](/build/building-from-github/) and [building on CI](/build/building-on-ci/) with any provider.
+export const initializeSoulpadSDKs = async (userId: string) => {
+  try {
+    // Initialize RevenueCat for Subscription Status & LTV tracking
+    Purchases.configure({ apiKey: 'REVENUECAT_PUBLIC_API_KEY', appUserID: userId });
 
-</Collapsible>
+    // Initialize Superwall for Dynamic Remote Paywalls
+    Superwall.configure('SUPERWALL_API_KEY');
 
-<Collapsible summary="What build server infrastructure does EAS Build use?">
-
-Android builds run on Linux runners hosted in Google Cloud Platform, and iOS builds run on macOS runners hosted in Expo's macOS cloud. See [Build server infrastructure](/build-reference/infrastructure/).
-
-</Collapsible>
-
-</FAQ>
-
-## Get started
-
-<BoxLink
-  title="Create your first build"
-  description="It should only take a few minutes in total to get up and running for iOS and/or Android."
-  href="/build/setup"
-  Icon={Cube01Icon}
-/>
-
-<BoxLink
-  title="Share your apps with internal testers"
-  description="EAS Build can help share preview builds of your app with a single URL."
-  href="/build/internal-distribution"
-  Icon={Cube01Icon}
-/>
-
-<BoxLink
-  title="Automate submissions"
-  description="Learn how EAS Build can take your successful builds and handle uploading them to app stores automatically."
-  href="/build/automate-submissions"
-  Icon={Cube01Icon}
-/>
-
-<BoxLink
-  title="App version management"
-  description="Automate version bumps so you never have to think about them again."
-  href="/build-reference/app-versions"
-  Icon={Cube01Icon}
-/>
-
-<BoxLink
-  title="Run builds locally or on your own infrastructure"
-  description="EAS Build is a hosted service, and it can also run on your own machine, for example, to debug or to comply with company security policies."
-  href="/build-reference/local-builds"
-  Icon={Cube01Icon}
-/>
-
-<BoxLink
-  title="Limitations"
-  description="EAS Build is new and rapidly evolving, so we recommend getting familiar with the current limitations."
-  href="/build-reference/limitations"
-  Icon={Cube01Icon}
-/>
+    console.log('Soulpad Engine SDKs initialized successfully.');
+  } catch (error) {
+    console.error('Failed to initialize SDKs:', error);
+  }
+};
