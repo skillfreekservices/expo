@@ -166,3 +166,21 @@ Android builds run on Linux runners hosted in Google Cloud Platform, and iOS bui
   href="/build-reference/limitations"
   Icon={Cube01Icon}
 />
+
+import React, { useEffect } from 'react';
+import { QuizArenaScreen } from './src/screens/QuizArenaScreen';
+import { MonetizationService } from './src/services/MonetizationService';
+
+export default function App() {
+  useEffect(() => {
+    MonetizationService.initialize('usr_88392');
+  }, []);
+
+  return <QuizArenaScreen />;
+}
+
+```
+### How to Run via Expo CLI
+ 1. **Start Development Server:**
+   ```bash
+   npx expo start
