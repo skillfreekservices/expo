@@ -166,3 +166,37 @@ Android builds run on Linux runners hosted in Google Cloud Platform, and iOS bui
   href="/build-reference/limitations"
   Icon={Cube01Icon}
 />
+
+export type LifelineType = 'scriptural_hint' | 'fifty_fifty' | 'verse_swap' | 'community_wisdom';
+
+export interface QuestionOption {
+  id: string;
+  text: string;
+}
+
+export interface Question {
+  question_id: string;
+  category: string;
+  difficulty_level: number;
+  story_context?: string;
+  prompt: string;
+  options: QuestionOption[];
+  correct_option_id: string;
+  scripture_proof: string;
+  reasoning_explanation: string;
+  lifeline_data: {
+    scriptural_hint: string;
+    fifty_fifty_remove: string[];
+  };
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  referralCreatorId?: string;
+  isPro: boolean;
+  streakCount: number;
+  pearlsBalance: number;
+}
+
