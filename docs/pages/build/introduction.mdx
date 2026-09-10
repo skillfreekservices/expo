@@ -166,3 +166,120 @@ Android builds run on Linux runners hosted in Google Cloud Platform, and iOS bui
   href="/build-reference/limitations"
   Icon={Cube01Icon}
 />
+
+import React from 'react';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+
+interface CouncilModalProps {
+  visible: boolean;
+  currentQuestionNumber: number;
+  offeredPearls: number;
+  onAccept: () => void;
+  onDecline: () => void;
+}
+
+export const CouncilModal: React.FC<CouncilModalProps> = ({
+  visible,
+  currentQuestionNumber,
+  offeredPearls,
+  onAccept,
+  onDecline,
+}) => {
+  const handleAccept = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onAccept();
+  };
+
+  const handleDecline = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onDecline();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <Animated.View entering={ZoomIn.duration(350)} style={styles.councilCard}>
+          <Text style={styles.councilTitle}>THE COUNCIL'S OFFER</Text>
+          <Text style={styles.councilDescription}>
+            You have reached Question {currentQuestionNumber}. The Council offers guaranteed Pearls to walk away, or you can risk your run for higher ranks.
+          </Text>
+          
+          <Text style={styles.offerAmount}>{offeredPearls} PEARLS</Text>
+          
+          <TouchableOpacity activeOpacity={0.8} style={styles.acceptButton} onPress={handleAccept}>
+            <Text style={styles.acceptButtonText}>ACCEPT & CASH OUT</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity activeOpacity={0.7} style={styles.declineButton} onPress={handleDecline}>
+            <Text style={styles.declineButtonText}>REJECT & RISK IT ALL</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(8, 10, 21, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  councilCard: {
+    backgroundColor: '#11152E',
+    borderRadius: 28,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E6B800',
+    width: '100%',
+  },
+  councilTitle: {
+    color: '#E6B800',
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 12,
+  },
+  councilDescription: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  offerAmount: {
+    color: '#FFFFFF',
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginBottom: 25,
+  },
+  acceptButton: {
+    backgroundColor: '#E6B800',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  acceptButtonText: {
+    color: '#080A15',
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 1,
+  },
+  declineButton: {
+    paddingVertical: 10,
+  },
+  declineButtonText: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+});
+
