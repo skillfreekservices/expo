@@ -166,3 +166,42 @@ Android builds run on Linux runners hosted in Google Cloud Platform, and iOS bui
   href="/build-reference/limitations"
   Icon={Cube01Icon}
 />
+
+import React from 'react';
+import { StyleSheet, View, ViewStyle, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+
+interface GlassCardProps {
+  children: React.ReactNode;
+  style?: ViewStyle;
+}
+
+export const GlassCard: React.FC<GlassCardProps> = ({ children, style }) => {
+  if (Platform.OS === 'ios') {
+    return (
+      <BlurView intensity={25} tint="dark" style={[styles.glassCard, style]}>
+        {children}
+      </BlurView>
+    );
+  }
+
+  return <View style={[styles.glassCardFallback, style]}>{children}</View>;
+};
+
+const styles = StyleSheet.create({
+  glassCard: {
+    borderRadius: 24,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    overflow: 'hidden',
+  },
+  glassCardFallback: {
+    backgroundColor: 'rgba(22, 27, 61, 0.85)',
+    borderRadius: 24,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+});
+
