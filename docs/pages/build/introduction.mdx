@@ -166,3 +166,326 @@ Android builds run on Linux runners hosted in Google Cloud Platform, and iOS bui
   href="/build-reference/limitations"
   Icon={Cube01Icon}
 />
+
+import React, { useState, useEffect } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  SafeAreaView,
+  Alert,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+
+import { Question, LifelineType, UserProfile } from '../types/game';
+import { GlassCard } from '../components/GlassCard';
+import { CouncilModal } from '../components/CouncilModal';
+import { AttioCRM } from '../services/AnalyticsAndCRM';
+import { MonetizationService } from '../services/MonetizationService';
+
+const LADDER_REWARDS = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
+
+const SAMPLE_QUESTION: Question = {
+  question_id: 'sp_q_5082',
+  category: 'Biblical History & Events',
+  difficulty_level: 5,
+  story_context: 'During the reign of King Hezekiah, Jerusalem faced an imminent siege by the Assyrian army under Sennacherib.',
+  prompt: 'Which strategic engineering project did Hezekiah undertake to secure the city\'s water supply prior to the siege?',
+  options: [
+    { id: 'A', text: 'Rebuilding the Eastern Water Gate' },
+    { id: 'B', text: 'Tunneling through solid rock from Gihon Spring to Siloam' },
+    { id: 'C', text: 'Constructing deep reservoirs in the Kidron Valley' },
+    { id: 'D', text: 'Diverting the Jordan River into northern cisterns' },
+  ],
+  correct_option_id: 'B',
+  scripture_proof: '2 Chronicles 32:30',
+  reasoning_explanation: 'Hezekiah blocked the upper outlet of the Gihon spring and channeled the water straight down to the west side of the City of David.',
+  lifeline_data: {
+    scriptural_hint: 'Focus on the underground channel leading directly to Siloam.',
+    fifty_fifty_remove: ['A', 'D'],
+  },
+};
+
+const MOCK_USER: UserProfile = {
+  id: 'usr_88392',
+  email: 'leader@ministry.org',
+  name: 'David Pastor',
+  isPro: false,
+  streakCount: 7,
+  pearlsBalance: 1200,
+};
+
+export const QuizArenaScreen: React.FC = () => {
+  const [questionIndex, setQuestionIndex] = useState<number>(4);
+  const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
+  const [usedLifelines, setUsedLifelines] = useState<Record<LifelineType, boolean>>({
+    scriptural_hint: false,
+    fifty_fifty: false,
+    verse_swap: false,
+    community_wisdom: false,
+  });
+  const [showCouncilModal, setShowCouncilModal] = useState<boolean>(false);
+  const [activeHint, setActiveHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    AttioCRM.syncUserToAttio(MOCK_USER, 'ASCENT_RUN_STARTED', { levelIndex: questionIndex });
+
+    if (questionIndex === 4 || questionIndex === 9) {
+      setShowCouncilModal(true);
+    }
+  }, [questionIndex]);
+
+  const handleAnswerSelection = async (selectedId: string) => {
+    if (selectedId === SAMPLE_QUESTION.correct_option_id) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (questionIndex < LADDER_REWARDS.length - 1) {
+        setQuestionIndex(prev => prev + 1);
+        setDisabledOptions([]);
+        setActiveHint(null);
+      } else {
+        Alert.alert('Ascent Master!', 'You reached the peak of wisdom!');
+      }
+    } else {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      await AttioCRM.syncUserToAttio(MOCK_USER, 'ASCENT_RUN_FAILED', { failedAtQuestion: questionIndex + 1 });
+      await MonetizationService.triggerPaywall('second_chance_revive');
+      
+      Alert.alert('Ascent Ended', `Proof: ${SAMPLE_QUESTION.scripture_proof}. ${SAMPLE_QUESTION.reasoning_explanation}`);
+    }
+  };
+
+  const executeFiftyFifty = () => {
+    if (usedLifelines.fifty_fifty) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setDisabledOptions(SAMPLE_QUESTION.lifeline_data.fifty_fifty_remove);
+    setUsedLifelines(prev => ({ ...prev, fifty_fifty: true }));
+  };
+
+  const executeHint = () => {
+    if (usedLifelines.scriptural_hint) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveHint(SAMPLE_QUESTION.lifeline_data.scriptural_hint);
+    setUsedLifelines(prev => ({ ...prev, scriptural_hint: true }));
+  };
+
+  const handleAcceptCouncilOffer = async () => {
+    setShowCouncilModal(false);
+    const guaranteedPearls = LADDER_REWARDS[questionIndex - 1] || 500;
+    
+    await AttioCRM.syncUserToAttio(MOCK_USER, 'COUNCIL_OFFER_ACCEPTED', { cashedOutPearls: guaranteedPearls });
+    Alert.alert('Banker Offer Accepted', `You cashed out with ${guaranteedPearls} Pearls!`);
+  };
+
+  return (
+    <LinearGradient colors={['#080A15', '#161B3D', '#080A15']} style={styles.container}>
+      <StatusBar style="light" />
+      <SafeAreaView style={styles.safeArea}>
+        
+        {/* HUD Navigation Header */}
+        <View style={styles.headerContainer}>
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>CHERUBIM LEAGUE</Text>
+          </View>
+          <View style={styles.rewardContainer}>
+            <Text style={styles.rewardLabel}>QUESTION {questionIndex + 1} VALUE</Text>
+            <Text style={styles.rewardValue}>{LADDER_REWARDS[questionIndex]} Pearls</Text>
+          </View>
+        </View>
+
+        {/* Dynamic Lifelines Action Bar */}
+        <View style={styles.lifelinesContainer}>
+          <TouchableOpacity 
+            style={[styles.lifelineButton, usedLifelines.fifty_fifty && styles.lifelineDisabled]} 
+            onPress={executeFiftyFifty}
+            disabled={usedLifelines.fifty_fifty}>
+            <Text style={styles.lifelineText}>50:50</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.lifelineButton, usedLifelines.scriptural_hint && styles.lifelineDisabled]} 
+            onPress={executeHint}
+            disabled={usedLifelines.scriptural_hint}>
+            <Text style={styles.lifelineText}>Verse Hint</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Central Scenario Glass Container */}
+        <Animated.View entering={FadeInUp.duration(500)}>
+          <GlassCard>
+            <Text style={styles.categoryText}>{SAMPLE_QUESTION.category.toUpperCase()}</Text>
+            {SAMPLE_QUESTION.story_context && (
+              <Text style={styles.storyText}>{SAMPLE_QUESTION.story_context}</Text>
+            )}
+            <Text style={styles.promptText}>{SAMPLE_QUESTION.prompt}</Text>
+            
+            {activeHint && (
+              <View style={styles.hintContainer}>
+                <Text style={styles.hintText}>📖 {activeHint}</Text>
+              </View>
+            )}
+          </GlassCard>
+        </Animated.View>
+
+        {/* Multiple Choice Selection Grid */}
+        <View style={styles.optionsContainer}>
+          {SAMPLE_QUESTION.options.map((option, idx) => {
+            const isDisabled = disabledOptions.includes(option.id);
+            return (
+              <Animated.View key={option.id} entering={FadeInDown.delay(idx * 80)}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isDisabled}
+                  style={[styles.optionButton, isDisabled && styles.optionDisabled]}
+                  onPress={() => handleAnswerSelection(option.id)}>
+                  <Text style={styles.optionPrefix}>{option.id}</Text>
+                  <Text style={styles.optionText}>{option.text}</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        {/* High-Stakes Banker Modal Component */}
+        <CouncilModal
+          visible={showCouncilModal}
+          currentQuestionNumber={questionIndex + 1}
+          offeredPearls={LADDER_REWARDS[questionIndex - 1] || 500}
+          onAccept={handleAcceptCouncilOffer}
+          onDecline={() => setShowCouncilModal(false)}
+        />
+
+      </SafeAreaView>
+    </LinearGradient>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+    marginHorizontal: 18,
+    justifyContent: 'space-between',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  badgeContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  badgeText: {
+    color: '#E6B800',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  rewardContainer: {
+    alignItems: 'flex-end',
+  },
+  rewardLabel: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  rewardValue: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  lifelinesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginVertical: 10,
+  },
+  lifelineButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: '#E6B800',
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  lifelineDisabled: {
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    opacity: 0.25,
+  },
+  lifelineText: {
+    color: '#E6B800',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  categoryText: {
+    color: '#E6B800',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  storyText: {
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 10,
+    fontStyle: 'italic',
+  },
+  promptText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '600',
+    lineHeight: 24,
+  },
+  hintContainer: {
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: 'rgba(230, 184, 0, 0.08)',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#E6B800',
+  },
+  hintText: {
+    color: '#E6B800',
+    fontSize: 12,
+  },
+  optionsContainer: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  optionDisabled: {
+    opacity: 0.2,
+  },
+  optionPrefix: {
+    color: '#E6B800',
+    fontWeight: '800',
+    fontSize: 15,
+    marginRight: 12,
+  },
+  optionText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+});
+
