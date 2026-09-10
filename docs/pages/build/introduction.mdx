@@ -166,3 +166,50 @@ Android builds run on Linux runners hosted in Google Cloud Platform, and iOS bui
   href="/build-reference/limitations"
   Icon={Cube01Icon}
 />
+
+class UGCCreatorService {
+  private sideshiftApiKey = 'SK_LIVE_SIDESHIFT_API_KEY';
+  private baseUrl = 'https://app.sideshift.app/api/embed';
+
+  async registerUGCCreator(name: string, email: string, externalId: string): Promise<string | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/create`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': this.sideshiftApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, name, externalId }),
+      });
+      const data = await response.json();
+      return data.sideshiftAccountId;
+    } catch (error) {
+      console.error('[SideShift API Error]', error);
+      return null;
+    }
+  }
+
+  async processCreatorCommission(sideshiftAccountId: string, amountUsd: number): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/transfers/create`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': this.sideshiftApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sideshiftAccountId,
+          amount: amountUsd * 0.20, // 20% commission to UGC creator
+          currency: 'USD',
+          description: 'Soulpad Referral Bonus',
+        }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('[SideShift Transfer Error]', error);
+      return false;
+    }
+  }
+}
+
+export const SideShiftEngine = new UGCCreatorService();
