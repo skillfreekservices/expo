@@ -166,3 +166,42 @@ Android builds run on Linux runners hosted in Google Cloud Platform, and iOS bui
   href="/build-reference/limitations"
   Icon={Cube01Icon}
 />
+
+import { UserProfile } from '../types/game';
+
+class AnalyticsAndCRMService {
+  private attioApiKey = 'ATTIO_API_KEY_LIVE';
+  private baseUrl = 'https://api.attio.com/v2';
+
+  async syncUserToAttio(user: UserProfile, eventName: string, eventData?: Record<string, any>): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/objects/people/records`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${this.attioApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: {
+            values: {
+              email_addresses: [{ email_address: user.email }],
+              name: [{ full_name: user.name }],
+              custom_attributes: {
+                streak_count: user.streakCount,
+                is_pro_member: user.isPro,
+                pearl_balance: user.pearlsBalance,
+                last_event: eventName,
+                last_event_meta: JSON.stringify(eventData || {}),
+              },
+            },
+          },
+        }),
+      });
+      console.log(`[Attio CRM] Event synced: ${eventName}`);
+    } catch (err) {
+      console.error('[Attio CRM Error]', err);
+    }
+  }
+}
+
+export const AttioCRM = new AnalyticsAndCRMService();
